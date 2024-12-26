@@ -28,33 +28,3 @@ export async function getInstallations(jwtToken) {
     return null;
   }
 }
-
-export async function getInstallationToken(jwtToken, installationId) {
-  const tokenUrl = `https://api.github.com/app/installations/${installationId}/access_tokens`;
-  const headers = {
-    Authorization: `Bearer ${jwtToken}`,
-    Accept: "application/vnd.github.v3+json",
-  };
-  try {
-    const response = await axios.post(tokenUrl, null, { headers });
-    return response.data.token;
-  } catch (error) {
-    console.error("Failed to get installation token:", error.response.data);
-    return null;
-  }
-}
-
-export async function getRepositories(accessToken) {
-  const reposUrl = "https://api.github.com/installation/repositories";
-  const headers = {
-    Authorization: `token ${accessToken}`,
-    Accept: "application/vnd.github.v3+json",
-  };
-  try {
-    const response = await axios.get(reposUrl, { headers });
-    return response.data.repositories;
-  } catch (error) {
-    console.error("Failed to get repositories:", error.response.data);
-    return null;
-  }
-}

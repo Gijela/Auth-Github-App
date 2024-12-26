@@ -1,39 +1,49 @@
-import {
-  generateJWT,
-  getInstallations,
-  getInstallationToken,
-  getRepositories,
-} from "./utils/index.js";
+import { generateJWT, getInstallations } from "./utils/index.js";
 
 const appId = 1026724;
 const privateKeyPath = "./keys/test-cr-mentor.2024-10-15.private-key.pem";
+const githubId = "MDQ6VXNlcjgyMDcxMjA5";
 
 // 3. 获取 Installation Token
 
-async function main(appId, privateKeyPath) {
+async function main(appId, privateKeyPath, githubId) {
   // 1. 使用 github App 私钥文件生成 JWT
   const jwtToken = await generateJWT(appId, privateKeyPath);
   console.log("Generated JWT:", jwtToken);
 
-  // 2. 获取安装信息 Installation ID
-  let installationId = "";
+  // 2. 获取所有安装了 github App 的账号
   const installations = await getInstallations(jwtToken);
-  if (installations) {
-    // 提取第一个安装的 installation_id
-    installationId = installations[0].id;
-    console.log("Installation ID:", installationId);
-  }
-
-  // 3. 获取 Installation Token
-  const installationToken = await getInstallationToken(
-    jwtToken,
-    installationId
+  // console.log("🚀 ~ main ~ installations:", installations);
+  const { access_tokens_url, account } = installations.find(
+    (installation) => installation.account.node_id === githubId
   );
-  console.log("Installation Token:", installationToken);
+  console.log("access_tokens_url:", access_tokens_url);
 
-  // 4. 获取仓库信息
-  const repositories = await getRepositories(installationToken);
-  console.log("Repositories:", repositories);
+  // 3. 获取 githubId 对应用户的 access_tokens
+  const response = await fetch(access_tokens_url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${jwtToken}`,
+      Accept: "application/vnd.github.v3+json",
+    },
+  });
+  const { token } = await response.json();
+  console.log("token:", token);
+
+  // 4. 使用 access_tokens 获取仓库列表
+  try {
+    const reposResponse = await fetch(account.repos_url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    const repositories = await reposResponse.json();
+    console.log("Repositories:", repositories);
+  } catch (error) {
+    console.error("Failed to fetch repositories:", error);
+  }
 }
 
-main(appId, privateKeyPath);
+main(appId, privateKeyPath, githubId);
